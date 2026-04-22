@@ -1,75 +1,45 @@
-# React + TypeScript + Vite
+# 🏔️ The Wild Oasis (TypeScript Version)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**The Wild Oasis** is a feature-rich internal management application designed for a boutique hotel. This project represents a complete architectural migration from JavaScript to **TypeScript**, emphasizing type-safe data fetching, scalable component patterns, and robust state management.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Advanced Dashboard:** Real-time visualization of sales, bookings, and occupancy rates over varying timeframes (7, 30, or 90 days).
+- **Comprehensive Booking System:** Full CRUD operations for hotel bookings with server-side filtering, sorting, and pagination.
+- **Check-in/Check-out Logic:** A dedicated workflow for managing guest arrivals, including payment confirmation and optional breakfast service additions.
+- **Cabin Management:** Full inventory control allowing staff to update cabin details and upload photos to Supabase storage.
+- **User Authentication:** Secure login/signup system with personalized user profiles and avatar management.
+- **Dark Mode:** A persistent, global UI theme toggle implemented via React Context and Styled Components.
 
-## React Compiler
+## 🛠️ Technical Stack
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- **Framework:** [React 18](https://reactjs.org/) with **TypeScript**
+- **Styling:** [Styled Components](https://styled-components.com/) (using Transient Props pattern)
+- **Data Fetching:** [TanStack Query](https://tanstack.com/query/latest) (React Query)
+- **State Management:** Context API
+- **Form Handling:** [React Hook Form](https://react-hook-form.com/)
+- **Backend/Database:** [Supabase](https://supabase.com/) (PostgreSQL + Auth + Storage)
+- **Charts:** [Recharts](https://recharts.org/)
+- **Date Utilities:** [date-fns](https://date-fns.org/)
 
-Note: This will impact Vite dev & build performances.
+## 🏗️ Architecture & TypeScript Implementation
 
-## Expanding the ESLint configuration
+The migration from JS to TS focused on eliminating runtime errors and improving developer experience through strict contracts between components and data.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 1. Feature-Based Architecture
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+The project is organized by domain features (Bookings, Cabins, Dashboard, Check-in, etc.). Each feature contains its own logic, hooks, and specialized UI components.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 2. Type-Safe Patterns
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- **Generic UI Components:** Components like `Table`, `Menus`, and `Modal` utilize TypeScript Generics to handle various data shapes without losing type information.
+- **Transient Props:** Styled-components use the `$` prefix for props to prevent custom logic props from leaking into the DOM, fully typed via interfaces.
+- **Data Transformation:** Complex chart logic in `SalesChart` and `DurationChart` is protected by interfaces, ensuring that zero-value days are handled without crashing the UI.
+- **Global Error Handling:** Implemented `react-error-boundary` with a typed `ErrorFallback` component to catch and report runtime exceptions gracefully.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 📦 Getting Started
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. **Clone the repo:**
+   ```bash
+   git clone [https://github.com/your-username/the-wild-oasis-ts.git](https://github.com/your-username/the-wild-oasis-ts.git)
+   ```
