@@ -1,4 +1,7 @@
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import Button from "../../components/Button";
 import Form from "../../components/Form";
 import FormRow from "../../components/FormRow";
@@ -6,25 +9,38 @@ import Input from "../../components/Input";
 
 import { useUpdateUser } from "./useUpdateUser";
 
-// 1. Define the shape of the form data
-interface UpdatePasswordValues {
-  password?: string;
-  passwordConfirm?: string;
-}
+// 1. Create a specific schema for this form
+// We take the base update schema but make the password REQUIRED for this specific form
+const updatePasswordFormSchema = z
+  .object({
+    password: z.string().min(8, "Password needs a minimum of 8 characters"),
+    passwordConfirm: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: "Passwords need to match",
+    path: ["passwordConfirm"],
+  });
+
+type UpdatePasswordValues = z.infer<typeof updatePasswordFormSchema>;
 
 function UpdatePasswordForm() {
-  // 2. Pass the interface as a generic to useForm
-  const { register, handleSubmit, formState, getValues, reset } =
-    useForm<UpdatePasswordValues>();
+  const { updateUser, isUpdating } = useUpdateUser();
+
+  // 2. Initialize with Zod resolver
+  const { handleSubmit, formState, reset, control } =
+    useForm<UpdatePasswordValues>({
+      resolver: zodResolver(updatePasswordFormSchema),
+      defaultValues: {
+        password: "",
+        passwordConfirm: "",
+      },
+    });
 
   const { errors } = formState;
 
-  const { updateUser, isUpdating } = useUpdateUser();
-
-  // 3. Destructure with types inferred from the interface
   function onSubmit({ password }: UpdatePasswordValues) {
-    if (!password) return;
-    updateUser({ password }, { onSuccess: () => reset() });
+    // No need to check if password exists; Zod ensures it does before onSubmit is called
+    updateUser({ password }, { onSettled: () => reset() });
   }
 
   return (
@@ -33,18 +49,17 @@ function UpdatePasswordForm() {
         label="New password (min 8 characters)"
         error={errors?.password?.message}
       >
-        <Input
-          type="password"
-          id="password"
-          autoComplete="current-password"
-          disabled={isUpdating}
-          {...register("password", {
-            required: "This field is required",
-            minLength: {
-              value: 8,
-              message: "Password needs a minimum of 8 characters",
-            },
-          })}
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field} // 👈 This spreads value, onChange, onBlur, AND ref
+              type="password"
+              id="password"
+              disabled={isUpdating}
+            />
+          )}
         />
       </FormRow>
 
@@ -52,23 +67,28 @@ function UpdatePasswordForm() {
         label="Confirm password"
         error={errors?.passwordConfirm?.message}
       >
-        <Input
-          type="password"
-          autoComplete="new-password"
-          id="passwordConfirm"
-          disabled={isUpdating}
-          {...register("passwordConfirm", {
-            required: "This field is required",
-            validate: (value) =>
-              getValues().password === value || "Passwords need to match",
-          })}
+        <Controller
+          name="passwordConfirm"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field} // 👈 This spreads value, onChange, onBlur, AND ref
+              type="password"
+              id="passwordConfirm"
+              disabled={isUpdating}
+            />
+          )}
         />
       </FormRow>
 
       <FormRow>
-        {/* Using $variation to match your styled-components interface */}
         <>
-          <Button onClick={() => reset()} type="reset" $variation="secondary">
+          <Button
+            onClick={() => reset()}
+            type="reset"
+            $variation="secondary"
+            disabled={isUpdating}
+          >
             Cancel
           </Button>
           <Button disabled={isUpdating}>Update password</Button>

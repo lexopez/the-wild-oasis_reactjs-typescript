@@ -1,30 +1,51 @@
-import { useForm, type SubmitHandler } from "react-hook-form";
+import { Controller, useForm, type SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
 import Button from "../../components/Button";
 import Form from "../../components/Form";
 import FormRow from "../../components/FormRow";
 import Input from "../../components/Input";
+
 import { useSignup } from "./useSignup";
-import type { SignupArgs } from "../../types/auth.types";
+import { signupSchema } from "../../schemas/authSchema";
 
-// Email regex: /\S+@\S+\.\S+/
+// 1. Extend the global schema to include password confirmation
+const signupFormSchema = signupSchema
+  .extend({
+    passwordConfirm: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.passwordConfirm, {
+    message: "Passwords need to match",
+    path: ["passwordConfirm"], // This ensures the error appears on the correct field
+  });
 
-interface SignupFormValues extends SignupArgs {
-  passwordConfirm: string;
-}
+// 2. Infer the type directly from the schema
+type SignupFormValues = z.infer<typeof signupFormSchema>;
 
 function SignupForm() {
   const { signup, isLoading } = useSignup();
-  const { register, formState, getValues, handleSubmit, reset } =
-    useForm<SignupFormValues>();
+
+  // 3. Initialize useForm with the zodResolver
+  const { formState, handleSubmit, reset, control } = useForm<SignupFormValues>(
+    {
+      resolver: zodResolver(signupFormSchema),
+      defaultValues: {
+        fullName: "",
+        email: "",
+        password: "",
+        passwordConfirm: "",
+      },
+    },
+  );
+
   const { errors } = formState;
 
-  const onSubmit: SubmitHandler<SignupFormValues> = ({
-    fullName,
-    email,
-    password,
-  }) => {
+  const onSubmit: SubmitHandler<SignupFormValues> = (data) => {
+    console.log(data);
+    // Zod has already validated that passwords match, so we just send the base data
     signup(
-      { fullName, email, password },
+      { fullName: data.fullName, email: data.email, password: data.password },
       {
         onSettled: () => reset(),
       },
@@ -34,27 +55,32 @@ function SignupForm() {
   return (
     <Form onSubmit={handleSubmit(onSubmit)}>
       <FormRow label="Full name" error={errors?.fullName?.message}>
-        <Input
-          type="text"
-          id="fullName"
-          disabled={isLoading}
-          {...register("fullName", { required: "This field is required" })}
+        <Controller
+          name="fullName"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field} // 👈 This spreads value, onChange, onBlur, AND ref
+              type="password"
+              id="fullName"
+              disabled={isLoading}
+            />
+          )}
         />
       </FormRow>
 
       <FormRow label="Email address" error={errors?.email?.message}>
-        <Input
-          type="email"
-          id="email"
-          disabled={isLoading}
-          {...register("email", {
-            required: "This field is required",
-            pattern: {
-              // Fixed typo here
-              value: /\S+@\S+\.\S+/,
-              message: "Please provide a valid email address",
-            },
-          })}
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field} // 👈 This spreads value, onChange, onBlur, AND ref
+              type="email"
+              id="email"
+              disabled={isLoading}
+            />
+          )}
         />
       </FormRow>
 
@@ -62,34 +88,37 @@ function SignupForm() {
         label="Password (min 8 characters)"
         error={errors?.password?.message}
       >
-        <Input
-          type="password"
-          id="password"
-          disabled={isLoading}
-          {...register("password", {
-            required: "This field is required",
-            minLength: {
-              value: 8,
-              message: "Password needs a minimum of 8 characters",
-            },
-          })}
+        <Controller
+          name="password"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field} // 👈 This spreads value, onChange, onBlur, AND ref
+              type="password"
+              id="password"
+              disabled={isLoading}
+            />
+          )}
         />
       </FormRow>
 
       <FormRow label="Repeat password" error={errors?.passwordConfirm?.message}>
-        <Input
-          type="password"
-          id="passwordConfirm"
-          disabled={isLoading}
-          {...register("passwordConfirm", {
-            required: "This field is required",
-            validate: (value) =>
-              value === getValues().password || "Passwords need to match",
-          })}
+        <Controller
+          name="passwordConfirm"
+          control={control}
+          render={({ field }) => (
+            <Input
+              {...field} // 👈 This spreads value, onChange, onBlur, AND ref
+              type="password"
+              id="passwordConfirm"
+              disabled={isLoading}
+            />
+          )}
         />
       </FormRow>
 
       <FormRow>
+        {/* Using a fragment is fine, but styled-components usually handle this spacing */}
         <>
           <Button
             $variation="secondary"

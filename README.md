@@ -13,14 +13,24 @@
 
 ## 🛠️ Technical Stack
 
-- **Framework:** [React 18](https://reactjs.org/) with **TypeScript**
-- **Styling:** [Styled Components](https://styled-components.com/) (using Transient Props pattern)
-- **Data Fetching:** [TanStack Query](https://tanstack.com/query/latest) (React Query)
-- **State Management:** Context API
-- **Form Handling:** [React Hook Form](https://react-hook-form.com/)
-- **Backend/Database:** [Supabase](https://supabase.com/) (PostgreSQL + Auth + Storage)
-- **Charts:** [Recharts](https://recharts.org/)
-- **Date Utilities:** [date-fns](https://date-fns.org/)
+- **Frontend:** React.js (Transitioning to Vue.js 3)
+- **State Management:** TanStack Query (React Query)
+- **Validation:** [Zod](https://zod.dev/) (Schema-based validation)
+- **Form Handling:** React Hook Form (with Zod Resolver)
+- **Backend:** Supabase (Auth, PostgreSQL, Storage)
+- **Styling:** Styled Components
+
+* **Charts:** [Recharts](https://recharts.org/)
+* **Date Utilities:** [date-fns](https://date-fns.org/)
+
+## ✨ Key Architectural Features
+
+### 🛡️ Zod-First Validation Layer
+
+We implement a "Single Source of Truth" by centralizing all data logic in `src/schemas`. These schemas guard two critical boundaries:
+
+1.  **The API Boundary:** Using `.parse()` and `.safeParse()` in services to validate data coming from Supabase, preventing runtime crashes from database schema drifts.
+2.  **The Form Boundary:** Integrated via `@hookform/resolvers/zod` to provide real-time, schema-driven feedback to users.
 
 ## 🏗️ Architecture & TypeScript Implementation
 

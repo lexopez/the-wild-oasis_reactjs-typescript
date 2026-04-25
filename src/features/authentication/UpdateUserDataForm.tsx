@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 
 import Button from "../../components/Button";
 import FileInput from "../../components/FileInput";
@@ -8,32 +8,39 @@ import Input from "../../components/Input";
 
 import { useUser } from "./useUser";
 import { useUpdateUser } from "./useUpdateUser";
+import { updateUserSchema } from "../../schemas/authSchema";
 
 function UpdateUserDataForm() {
-  // 1. Destructuring with an assumption that useUser returns a typed User object
-  // If user is undefined initially, we use optional chaining or a guard
   const { user } = useUser();
+  const { updateUser, isUpdating } = useUpdateUser();
 
   const email = user?.email;
   const currentFullName = user?.user_metadata?.fullName;
 
-  const { updateUser, isUpdating } = useUpdateUser();
-
-  // 2. State typing: avatar can be a File object or null
+  // 1. State is typed based on our schema needs
   const [fullName, setFullName] = useState<string>(currentFullName || "");
   const [avatar, setAvatar] = useState<File | null>(null);
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!fullName) return;
 
-    // 3. updateUser expects an object matching the User update schema
+    // 2. On-demand validation using Zod
+    // We validate the current state against our schema
+    const result = updateUserSchema.safeParse({ fullName, avatar });
+
+    if (!result.success) {
+      // You could map these errors to a local 'errors' state if needed
+      console.error("Validation failed:", result.error.format());
+      return;
+    }
+
+    // 3. Send the validated data
     updateUser(
-      { fullName, avatar },
+      { fullName: result.data.fullName, avatar: result.data.avatar },
       {
         onSuccess: () => {
           setAvatar(null);
-          // Type casting to access the form reset method
+          // Standard DOM reset for the file input field
           (e.target as HTMLFormElement).reset();
         },
       },
@@ -67,7 +74,6 @@ function UpdateUserDataForm() {
         <FileInput
           id="avatar"
           accept="image/*"
-          // 4. File input handling with null-safety
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             setAvatar(e.target.files ? e.target.files[0] : null)
           }

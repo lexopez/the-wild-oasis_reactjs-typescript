@@ -2,12 +2,18 @@ import Form from "../../components/Form";
 import FormRow from "../../components/FormRow";
 import Input from "../../components/Input";
 import Spinner from "../../components/Spinner";
-import type { Settings } from "../../types/settings.types";
+
 import { useSettings } from "./useSettings";
 import { useUpdateSetting } from "./useUpdateSetting";
+import { updateSettingSchema } from "../../schemas/settingsSchema";
+import type { Settings } from "../../schemas/settingsSchema";
 
 function UpdateSettingsForm() {
-  const { isLoading, settings = {} as Settings } = useSettings();
+  // 1. settings is now typed via Zod inference
+  const { isLoading, settings } = useSettings();
+  const { isUpdating, updateSetting } = useUpdateSetting();
+
+  if (isLoading || !settings) return <Spinner />;
 
   const {
     minBookingLength,
@@ -16,10 +22,6 @@ function UpdateSettingsForm() {
     breakfastPrice,
   } = settings;
 
-  const { isUpdating, updateSetting } = useUpdateSetting();
-
-  if (isLoading) return <Spinner />;
-
   function handleUpdate(
     e: React.FocusEvent<HTMLInputElement>,
     field: keyof Settings,
@@ -27,8 +29,24 @@ function UpdateSettingsForm() {
     const { value } = e.target;
 
     if (!value) return;
-    if (Number(value) === settings[field]) return;
-    updateSetting({ [field]: Number(value) });
+
+    // 2. Optimization: Don't update if the value hasn't changed
+    const newValue = Number(value);
+    if (newValue === settings?.[field]) return;
+
+    // 3. Validation: Use safeParse to validate the specific field update
+    const result = updateSettingSchema.safeParse({ [field]: newValue });
+
+    if (!result.success) {
+      // You could display a toast error here using the formatted error
+      console.error(result.error);
+      // Optional: Reset the input value to the previous valid state from 'settings'
+      e.target.value = String(settings?.[field]);
+      return;
+    }
+
+    // 4. Submit the validated data
+    updateSetting(result.data);
   }
 
   return (
@@ -42,6 +60,7 @@ function UpdateSettingsForm() {
           onBlur={(e) => handleUpdate(e, "minBookingLength")}
         />
       </FormRow>
+
       <FormRow label="Maximum nights/booking">
         <Input
           type="number"
@@ -51,6 +70,7 @@ function UpdateSettingsForm() {
           onBlur={(e) => handleUpdate(e, "maxBookingLength")}
         />
       </FormRow>
+
       <FormRow label="Maximum guests/booking">
         <Input
           type="number"
@@ -60,6 +80,7 @@ function UpdateSettingsForm() {
           onBlur={(e) => handleUpdate(e, "maxGuestsPerBooking")}
         />
       </FormRow>
+
       <FormRow label="Breakfast price">
         <Input
           type="number"

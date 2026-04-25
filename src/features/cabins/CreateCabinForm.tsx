@@ -1,4 +1,6 @@
 import { useForm, type SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 import Input from "../../components/Input";
 import Form from "../../components/Form";
@@ -9,19 +11,23 @@ import FormRow from "../../components/FormRow";
 
 import { useCreateCabin } from "./useCreateCabin";
 import { useEditCabin } from "./useEditCabin";
-import type { Cabin } from "../../types/cabins.types";
+import { cabinWithFileSchema } from "../../schemas/cabinSchema";
+import type { Cabin } from "../../schemas/cabinSchema";
 
-// 1. Define the props for the form
+// 1. Extend our base schema for form-specific logic (like the discount check)
+const cabinFormSchema = cabinWithFileSchema.refine(
+  (data) => Number(data.discount) <= Number(data.regularPrice),
+  {
+    message: "Discount should be less than regular price",
+    path: ["discount"],
+  },
+);
+
+type CabinFormData = z.infer<typeof cabinFormSchema>;
+
 interface CreateCabinFormProps {
-  cabinToEdit?: Partial<Cabin> & { id?: number };
+  cabinToEdit?: Partial<Cabin>;
   onCloseModal?: () => void;
-}
-
-// 2. Define the shape of the form data
-// We use 'any' for image here because React Hook Form handles FileList,
-// but our edit logic might use a string URL.
-interface CabinFormData extends Omit<Cabin, "id" | "image"> {
-  image: string;
 }
 
 function CreateCabinForm({
@@ -35,45 +41,32 @@ function CreateCabinForm({
   const { id: editId, ...editValues } = cabinToEdit;
   const isEditSession = Boolean(editId);
 
-  const { register, handleSubmit, reset, getValues, formState } =
-    useForm<CabinFormData>({
-      defaultValues: isEditSession ? (editValues as CabinFormData) : {},
-    });
+  // 2. Setup useForm with Zod resolver
+  const { register, handleSubmit, reset, formState } = useForm<CabinFormData>({
+    resolver: zodResolver(cabinFormSchema),
+    defaultValues: isEditSession
+      ? (editValues as CabinFormData)
+      : { discount: 0 },
+  });
 
   const { errors } = formState;
 
-  // 3. Use SubmitHandler with our form interface
   const onSubmit: SubmitHandler<CabinFormData> = (data) => {
-    // Determine if we are keeping the old string URL or using a new File
+    // 3. Handle the image input
+    // React Hook Form provides a FileList for file inputs, we take the first file
     const image = typeof data.image === "string" ? data.image : data.image[0];
 
+    const actionOptions = {
+      onSuccess: () => {
+        reset();
+        onCloseModal?.();
+      },
+    };
+
     if (isEditSession && editId) {
-      editCabin(
-        {
-          ...data,
-          image,
-          id: editId,
-        },
-        {
-          onSuccess: () => {
-            reset();
-            onCloseModal?.();
-          },
-        },
-      );
+      editCabin({ ...data, image, id: editId }, actionOptions);
     } else {
-      createCabin(
-        {
-          ...data,
-          image: image,
-        },
-        {
-          onSuccess: () => {
-            reset();
-            onCloseModal?.();
-          },
-        },
-      );
+      createCabin({ ...data, image }, actionOptions);
     }
   };
 
@@ -87,9 +80,7 @@ function CreateCabinForm({
           type="text"
           id="name"
           disabled={isWorking}
-          {...register("name", {
-            required: "This field is required",
-          })}
+          {...register("name")}
         />
       </FormRow>
 
@@ -98,13 +89,7 @@ function CreateCabinForm({
           type="number"
           id="maxCapacity"
           disabled={isWorking}
-          {...register("maxCapacity", {
-            required: "This field is required",
-            min: {
-              value: 1,
-              message: "Capacity should be at least 1",
-            },
-          })}
+          {...register("maxCapacity", { valueAsNumber: true })}
         />
       </FormRow>
 
@@ -113,13 +98,7 @@ function CreateCabinForm({
           type="number"
           id="regularPrice"
           disabled={isWorking}
-          {...register("regularPrice", {
-            required: "This field is required",
-            min: {
-              value: 1,
-              message: "Price should be at least 1",
-            },
-          })}
+          {...register("regularPrice", { valueAsNumber: true })}
         />
       </FormRow>
 
@@ -127,35 +106,25 @@ function CreateCabinForm({
         <Input
           type="number"
           id="discount"
-          defaultValue={0}
           disabled={isWorking}
-          {...register("discount", {
-            required: "This field is required",
-            validate: (value) =>
-              Number(value) <= Number(getValues().regularPrice) ||
-              "Discount should be less than regular price",
-          })}
+          {...register("discount", { valueAsNumber: true })}
         />
       </FormRow>
 
       <FormRow label="Description" error={errors?.description?.message}>
         <Textarea
           id="description"
-          defaultValue=""
           disabled={isWorking}
-          {...register("description", {
-            required: "This field is required",
-          })}
+          {...register("description")}
         />
       </FormRow>
 
-      <FormRow label="Cabin photo">
+      <FormRow label="Cabin photo" error={errors?.image?.message}>
         <FileInput
           id="image"
           accept="image/*"
-          {...register("image", {
-            required: isEditSession ? false : "This field is required",
-          })}
+          disabled={isWorking}
+          {...register("image")}
         />
       </FormRow>
 
